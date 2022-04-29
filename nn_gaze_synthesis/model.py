@@ -42,7 +42,7 @@ class EyePredModel1(nn.Module):
         mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0.0))
         return mask
 
-    def forward(self, x: torch.Tensor, target: torch.Tensor):
+    def forward(self, x: torch.Tensor):
         # x is in shape, [batch_position, sequence_position, channel, img_x, img_y]
         batch_size, sequence_length, channels, img_size_x, img_size_y = x.size()
         # Combine sequence_position with batch_position, to process all images in the sequence with shared weights
