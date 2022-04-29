@@ -34,6 +34,7 @@ class EyePredModel1(nn.Module):
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=4)
         self.position_encoding = PositionalEncoding(token_size, 0.1, max_len)
         self.decoder = nn.Linear(self.token_size, 2)
+        self.activation = nn.LeakyReLU(inplace=True)
         self.src_mask = None
 
     def _generate_square_subsequent_mask(self, sz):
@@ -49,7 +50,7 @@ class EyePredModel1(nn.Module):
         # Apply CNN reduction to all images in all batches
         x = self.cnn_encoder(x)
         # Reduce the resnet output to the token size
-        x = self.image_embedding(x)
+        x = self.image_embedding(self.activation(x))
         # Recreate the sequence demension
         x = x.reshape(batch_size, sequence_length, self.token_size)
         # Mask future in transformer
