@@ -12,7 +12,7 @@ class DummyData(Dataset):
         self.transform = transform
 
     def __len__(self):
-        return 5
+        return 100
 
     def __getitem__(self, idx):
         sample = []

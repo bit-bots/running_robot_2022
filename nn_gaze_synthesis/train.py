@@ -1,5 +1,7 @@
+import cv2
 import torch
 import torch.nn as nn
+import numpy as np
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
@@ -14,12 +16,12 @@ def train(model):
     model.train()
 
     data_set = DummyData(transform=DEFAULT_TRANSFORMS)
-    data_loader = DataLoader(data_set, batch_size=2, shuffle=True)
+    data_loader = DataLoader(data_set, batch_size=16, shuffle=True)
 
-    lr = 0.005
-    epochs = 10
+    lr = 0.001
+    epochs = 500
 
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
     criterion = nn.MSELoss()
 
@@ -32,10 +34,17 @@ def train(model):
             output = model(data)
             loss = criterion(output, targets)
             loss.backward()
+            if i % 20 == 0:
+                pred_point = tuple((output[0,0].detach().cpu().numpy() * 224).astype(int))
+                target_point = tuple((targets[0,0].detach().cpu().numpy() * 224).astype(int))
+                canvas = cv2.circle((data[0,0].detach().cpu()*255).permute(1,2,0).numpy().astype(np.uint8), target_point, 4, (0, 0, 255), -1)
+                canvas = cv2.circle(canvas, pred_point, 4, (0, 255, 0), -1)
+                cv2.imshow("debug", canvas)
+                cv2.waitKey(1)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 0.9)
             optimizer.step()
             print(f"Loss: {loss.item()}")
-        scheduler.step()
+        #scheduler.step()
 
 if __name__ == "__main__":
     print("Load model")

@@ -34,6 +34,7 @@ class Normalize:
         images, labels = x
         images = images / 255
         # TODO normalize labels
+        labels = labels / 224
         return (images, labels)
 
 

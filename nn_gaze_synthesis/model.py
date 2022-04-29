@@ -28,10 +28,11 @@ class EyePredModel1(nn.Module):
     def __init__(self, img_size=224, token_size=128, max_len=5000) -> None:
         super().__init__()
         self.token_size = token_size
-        self.cnn_encoder = torch.hub.load('pytorch/vision:v0.10.0', 'resnet50', pretrained=True)
-        self.image_embedding = nn.Linear(1000, token_size)
+        resnet = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
+        self.cnn_encoder = torch.nn.Sequential(*(list(resnet.children())[:-3])) #Remove last layers from resnet
+        self.image_embedding = nn.Linear(256 * 14 * 14, token_size) # Maps resnet output to embeddings for the transformer
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.token_size, nhead=8, dropout=0.1)
-        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=4)
+        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=1)
         self.position_encoding = PositionalEncoding(token_size, 0.1, max_len)
         self.decoder = nn.Linear(self.token_size, 2)
         self.activation = nn.LeakyReLU(inplace=True)
@@ -46,13 +47,13 @@ class EyePredModel1(nn.Module):
         # x is in shape, [batch_position, sequence_position, channel, img_x, img_y]
         batch_size, sequence_length, channels, img_size_x, img_size_y = x.size()
         # Combine sequence_position with batch_position, to process all images in the sequence with shared weights
-        x = x.reshape(batch_size * sequence_length, channels, img_size_x, img_size_y)
+        x = x.view(batch_size * sequence_length, channels, img_size_x, img_size_y)
         # Apply CNN reduction to all images in all batches
         x = self.cnn_encoder(x)
         # Reduce the resnet output to the token size
-        x = self.image_embedding(self.activation(x))
+        x = self.image_embedding(x.flatten(start_dim=1))
         # Recreate the sequence demension
-        x = x.reshape(batch_size, sequence_length, self.token_size)
+        x = x.view(batch_size, sequence_length, self.token_size)
         # Mask future in transformer
         if self.src_mask is None or self.src_mask.size(1) != sequence_length:
             device = x.device
