@@ -6,7 +6,6 @@ import torch.nn as nn
 class PositionalEncoding(nn.Module):
     def __init__(self,
                  emb_size: int,
-                 dropout: float,
                  maxlen: int = 5000):
         super(PositionalEncoding, self).__init__()
         den = torch.exp(- torch.arange(0, emb_size, 2)* math.log(10000) / emb_size)
@@ -16,11 +15,10 @@ class PositionalEncoding(nn.Module):
         pos_embedding[:, 1::2] = torch.cos(pos * den)
         pos_embedding = pos_embedding.unsqueeze(-2)
 
-        self.dropout = nn.Dropout(dropout)
         self.register_buffer('pos_embedding', pos_embedding)
 
     def forward(self, token_embedding: torch.Tensor):
-        return self.dropout(token_embedding + self.pos_embedding[:token_embedding.size(0), :])
+        return token_embedding + self.pos_embedding[:token_embedding.size(0), :]
 
 
 
@@ -31,9 +29,9 @@ class EyePredModel1(nn.Module):
         resnet = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
         self.cnn_encoder = torch.nn.Sequential(*(list(resnet.children())[:-2])) #Remove last layers from resnet
         self.image_embedding = nn.Linear(512 * 7 * 7, token_size) # Maps resnet output to embeddings for the transformer
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.token_size, nhead=8, dropout=0.1)
-        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=3)
-        self.position_encoding = PositionalEncoding(token_size, 0.1, max_len)
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.token_size, nhead=2, dropout=0.03)
+        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=2)
+        self.position_encoding = PositionalEncoding(token_size, max_len)
         self.decoder = nn.Linear(self.token_size, 2)
         self.activation = nn.LeakyReLU(inplace=True)
         self.src_mask = None
@@ -55,14 +53,14 @@ class EyePredModel1(nn.Module):
         # Recreate the sequence demension
         x = x.view(batch_size, sequence_length, self.token_size)
         # Bring input from shape [batch_size, sequence, token] in the shape [sequence, batch_size, token]
-        x = x.transpose(1, 0, 2)
+        x = x.transpose(0, 1)
         # Mask future in transformer
         if self.src_mask is None or self.src_mask.size(0) != sequence_length:
             device = x.device
             mask = self._generate_square_subsequent_mask(sequence_length).to(device)
             self.src_mask = mask
         # Run transformer
-        x = self.decoder(self.transformer_encoder(self.position_encoding(x)))
+        x = self.decoder(self.transformer_encoder(self.position_encoding(x), self.src_mask))
         # Return input to shape [batch_size, sequence, token]
-        x = x.transpose(1, 0, 2)
+        x = x.transpose(0, 1)
         return x
