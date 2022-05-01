@@ -25,7 +25,9 @@ class DummyData(Dataset):
             vector_x = math.sin(direction*(i + 100 * idx)*0.1) * 50
             vector_y = math.cos(direction*(i + 100 * idx)*0.1) * 50
             point = (int(img.shape[0]/2 + vector_x), int(img.shape[1]/2 + vector_y))
-            img = cv2.circle(img, point, 10, (255, 255, 255), -1)
+            # Only show circle on certain images to test the transformer
+            if np.random.randint(2):
+                img = cv2.circle(img, point, 10, (255, 255, 255), -1)
             sample.append((img, point))
 
         if self.transform:
