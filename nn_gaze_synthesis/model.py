@@ -54,11 +54,15 @@ class EyePredModel1(nn.Module):
         x = self.image_embedding(x.flatten(start_dim=1))
         # Recreate the sequence demension
         x = x.view(batch_size, sequence_length, self.token_size)
+        # Bring input from shape [batch_size, sequence, token] in the shape [sequence, batch_size, token]
+        x = x.transpose(1, 0, 2)
         # Mask future in transformer
-        if self.src_mask is None or self.src_mask.size(1) != sequence_length:
+        if self.src_mask is None or self.src_mask.size(0) != sequence_length:
             device = x.device
             mask = self._generate_square_subsequent_mask(sequence_length).to(device)
             self.src_mask = mask
         # Run transformer
         x = self.decoder(self.transformer_encoder(self.position_encoding(x)))
+        # Return input to shape [batch_size, sequence, token]
+        x = x.transpose(1, 0, 2)
         return x
