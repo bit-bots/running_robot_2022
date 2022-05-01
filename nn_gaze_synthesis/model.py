@@ -28,11 +28,11 @@ class EyePredModel1(nn.Module):
     def __init__(self, img_size=224, token_size=128, max_len=5000) -> None:
         super().__init__()
         self.token_size = token_size
-        resnet = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=False)
+        resnet = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
         self.cnn_encoder = torch.nn.Sequential(*(list(resnet.children())[:-2])) #Remove last layers from resnet
         self.image_embedding = nn.Linear(512 * 7 * 7, token_size) # Maps resnet output to embeddings for the transformer
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.token_size, nhead=8, dropout=0.1)
-        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=1)
+        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=3)
         self.position_encoding = PositionalEncoding(token_size, 0.1, max_len)
         self.decoder = nn.Linear(self.token_size, 2)
         self.activation = nn.LeakyReLU(inplace=True)

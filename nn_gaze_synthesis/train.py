@@ -18,7 +18,7 @@ def train(model):
     data_set = DummyData(transform=DEFAULT_TRANSFORMS)
     data_loader = DataLoader(data_set, batch_size=16, shuffle=True)
 
-    lr = 0.001
+    lr = 0.0005
     epochs = 500
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -34,12 +34,13 @@ def train(model):
             output = model(data)
             loss = criterion(output, targets)
             loss.backward()
-            if i % 20 == 0:
-                pred_point = tuple((output[0,0].detach().cpu().numpy() * 224).astype(int))
-                target_point = tuple((targets[0,0].detach().cpu().numpy() * 224).astype(int))
-                canvas = cv2.circle((data[0,0].detach().cpu()*255).permute(1,2,0).numpy().astype(np.uint8), target_point, 4, (0, 0, 255), -1)
-                canvas = cv2.circle(canvas, pred_point, 4, (0, 255, 0), -1)
-                cv2.imshow("debug", canvas)
+            if i % 3 == 0:
+                for i in range(5):
+                    pred_point = tuple((output[0,i].detach().cpu().numpy() * 224).astype(int))
+                    target_point = tuple((targets[0,i].detach().cpu().numpy() * 224).astype(int))
+                    canvas = cv2.circle((data[0,i].detach().cpu()*255).permute(1,2,0).numpy().astype(np.uint8), target_point, 4, (0, 0, 255), -1)
+                    canvas = cv2.circle(canvas, pred_point, 4, (0, 255, 0), -1)
+                    cv2.imshow(f"debug_{i}", canvas)
                 cv2.waitKey(1)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 0.9)
             optimizer.step()
@@ -48,7 +49,7 @@ def train(model):
 
 if __name__ == "__main__":
     print("Load model")
-    model = EyePredModel1(img_size=244, token_size=128, max_len=5000)
+    model = EyePredModel1(img_size=244, token_size=128, max_len=50)
     model.to(DEVICE)
     train(model)
 
