@@ -26,7 +26,7 @@ def train(model):
     criterion = nn.MSELoss()
 
     for epoch in range(1, epochs + 1):
-        for i, batch in tqdm(enumerate(data_loader)):
+        for i, batch in enumerate(tqdm(data_loader)):
             data, targets = batch
             data = data.to(DEVICE)
             targets = targets.to(DEVICE)
