@@ -27,10 +27,11 @@ class EyePredModel1(nn.Module):
         super().__init__()
         self.token_size = token_size
         resnet = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
-        self.cnn_encoder = torch.nn.Sequential(*(list(resnet.children())[:-2])) #Remove last layers from resnet
-        self.image_embedding = nn.Linear(512 * 7 * 7, token_size) # Maps resnet output to embeddings for the transformer
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.token_size, nhead=2, dropout=0.03)
-        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=2)
+        self.cnn_encoder = nn.Sequential(*(list(resnet.children())[:-2])) #Remove last layers from resnet
+        self.cnn_feature_reduction = nn.Conv2d(512, 8, 1) # Reduces the number of feature maps of the resnet
+        self.image_embedding = nn.Linear(8 * 7 * 7, token_size) # Maps resnet output to embeddings for the transformer
+        self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.token_size, nhead=4, dropout=0.03)
+        self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=3)
         self.position_encoding = PositionalEncoding(token_size, max_len)
         self.decoder = nn.Linear(self.token_size, 2)
         self.activation = nn.LeakyReLU(inplace=True)
@@ -49,7 +50,7 @@ class EyePredModel1(nn.Module):
         # Apply CNN reduction to all images in all batches
         x = self.cnn_encoder(x)
         # Reduce the resnet output to the token size
-        x = self.image_embedding(x.flatten(start_dim=1))
+        x = self.image_embedding(self.activation(self.cnn_feature_reduction(x)).flatten(start_dim=1))
         # Recreate the sequence demension
         x = x.view(batch_size, sequence_length, self.token_size)
         # Bring input from shape [batch_size, sequence, token] in the shape [sequence, batch_size, token]
