@@ -13,7 +13,7 @@ numpy = "^1.22.3"
 torchvision = "^0.12.0"
 opencv-python = "^4.5.5"
 torch-summary = "^1.4.5"
-pytorchvideo{ git = "https://github.com/facebookresearch/pytorchvideo.git", branch = "9368f308d4a4619a76554cbef15b6b85ca6d0f88" }
+pytorchvideo = { git = "https://github.com/facebookresearch/pytorchvideo.git", branch = "9368f308d4a4619a76554cbef15b6b85ca6d0f88" }
 
 [tool.poetry.dev-dependencies]
 
