@@ -159,6 +159,7 @@ description = "A video understanding deep learning library."
 category = "main"
 optional = false
 python-versions = ">=3.7"
+develop = false
 
 [package.dependencies]
 av = "*"
@@ -171,6 +172,12 @@ parameterized = "*"
 dev = ["opencv-python", "decord", "black (==20.8b1)", "sphinx", "isort (==4.3.21)", "flake8 (==3.8.1)", "flake8-bugbear", "flake8-comprehensions", "pre-commit", "nbconvert", "bs4", "autoflake (==1.4)"]
 opencv-python = ["opencv-python"]
 test = ["coverage", "pytest", "opencv-python", "decord"]
+
+[package.source]
+type = "git"
+url = "https://github.com/facebookresearch/pytorchvideo.git"
+reference = "9368f308d4a4619a76554cbef15b6b85ca6d0f88"
+resolved_reference = "9368f308d4a4619a76554cbef15b6b85ca6d0f88"
 
 [[package]]
 name = "pywin32"
@@ -314,7 +321,7 @@ PyYAML = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "bfa47a2ad2a2b16e6d44c1d68f9bdfd86d1031fd6ec80d9a5e730693bc7a241e"
+content-hash = "9f71362f3b5f4ef67528308ad4669474c654aabf1801db014cbd2333da0afd82"
 
 [metadata.files]
 av = [
@@ -462,9 +469,7 @@ portalocker = [
     {file = "portalocker-2.4.0-py2.py3-none-any.whl", hash = "sha256:b092f48e1e30a234ab3dd1cfd44f2f235e8a41f4e310e463fc8d6798d1c3c235"},
     {file = "portalocker-2.4.0.tar.gz", hash = "sha256:a648ad761b8ea27370cb5915350122cd807b820d2193ed5c9cc28f163df637f4"},
 ]
-pytorchvideo = [
-    {file = "pytorchvideo-0.1.5.tar.gz", hash = "sha256:69a3424c7feb70422da59d0cec17b56657984bd0ba8d5d78cad08a328cf6341b"},
-]
+pytorchvideo = []
 pywin32 = [
     {file = "pywin32-304-cp310-cp310-win32.whl", hash = "sha256:3c7bacf5e24298c86314f03fa20e16558a4e4138fc34615d7de4070c23e65af3"},
     {file = "pywin32-304-cp310-cp310-win_amd64.whl", hash = "sha256:4f32145913a2447736dad62495199a8e280a77a0ca662daa2332acf849f0be48"},

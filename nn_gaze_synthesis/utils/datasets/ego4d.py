@@ -11,7 +11,7 @@ import torch
 from pytorchvideo.data import UniformClipSampler
 from pytorchvideo.data.encoded_video import EncodedVideo
 from torch.utils.data import DataLoader
-
+from tqdm import tqdm
 
 
 @dataclass
@@ -32,12 +32,12 @@ class IndexableVideoDataset(torch.utils.data.Dataset):
 
         self.encoded_videos = {
             v.uid: EncodedVideo.from_path(
-                v.path, decode_audio=False, perform_seek=False
+                v.path, decode_audio=False
             )
-            for v in videos
+            for v in tqdm(videos)
         }
 
-        for v in videos:
+        for v in tqdm(videos):
             self.clips.extend(
                 list(get_all_clips(v, self.encoded_videos[v.uid].duration, sampler))
             )
@@ -63,6 +63,8 @@ class IndexableVideoDataset(torch.utils.data.Dataset):
             "video_name": video.uid,
             "video_index": idx,
             "clip_index": clip_index,
+            "start_index": clip_start,
+            "end_index": clip_end,
             "aug_index": aug_index
         }
         sample_dict = self.transform(sample_dict)
@@ -93,15 +95,13 @@ def create_dset(path, sequence_length=20, fps=10) -> IndexableVideoDataset:
     )
 
     video_path = os.path.join(path, "full_scale")
-    annotation_path = os.path.join(path, "full_scale")
+    annotation_path = os.path.join(path, "gaze")
 
     videos = map(partial(os.path.join, video_path), os.listdir(annotation_path))
     videos = starmap(Video, enumerate(videos))
-    videos = filter(lambda video: os.path.exists(video.path), videos)
-
-    print(videos)
+    videos = list(filter(lambda video: os.path.exists(video.path), videos))
 
     assert len(videos) > 0, "No videos loaded :("
 
-    transform = None  # TODO
+    transform = lambda x: x  # TODO
     return IndexableVideoDataset(videos, clip_sampler, transform)
