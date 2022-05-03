@@ -6,7 +6,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 
 from nn_gaze_synthesis.model import EyePredModel1
-from nn_gaze_synthesis.utils.dataset import DummyData
+from nn_gaze_synthesis.utils.datasets.dummy_dataset import DummyData
 from nn_gaze_synthesis.utils.transforms import DEFAULT_TRANSFORMS
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
