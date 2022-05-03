@@ -5,6 +5,7 @@ from fractions import Fraction
 from typing import Any, List
 from dataclasses import dataclass
 from functools import partial
+from itertools import starmap
 
 import torch
 from pytorchvideo.data import UniformClipSampler
@@ -95,7 +96,7 @@ def create_dset(path, sequence_length=20, fps=10) -> IndexableVideoDataset:
     annotation_path = os.path.join(path, "full_scale")
 
     videos = map(partial(os.path.join, video_path), os.listdir(annotation_path))
-    videos = map(Video, enumerate(videos))
+    videos = starmap(Video, enumerate(videos))
     videos = filter(lambda video: os.path.exists(video.path), videos)
 
     print(videos)
