@@ -16,3 +16,6 @@ def get_closest(array: np.ndarray, values: np.ndarray) -> np.ndarray:
     idxs[prev_idx_is_less] -= 1
 
     return array[idxs]
+
+def gaze_postion_on_image(gaze, image_dim):
+    return gaze * image_dim[:2]
