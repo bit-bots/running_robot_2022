@@ -60,11 +60,11 @@ class IndexableVideoDataset(torch.utils.data.Dataset):
 
         for v in tqdm(videos):
             self.clips.extend(
-                list(get_all_clips(v, self.encoded_videos[v.uid].duration, sampler))
+                list(get_all_clips(v, self.encoded_videos[v.uid].duration, self.sampler))
             )
 
         self.gaze_annotations = {
-            v.uid: os.path.join(annotation_path, os.bath.basename(v.path))
+            v.uid: os.path.join(annotation_path, os.path.basename(v.path))
             for v in tqdm(videos)
         }
 
@@ -87,11 +87,11 @@ class IndexableVideoDataset(torch.utils.data.Dataset):
         # Load eye track data
         annotation_file = self.gaze_annotations[video.uid]
         eye_data = np.genfromtxt(annotation_file, names=True, delimiter=",")
-        eye_data = eye_data[["component_timestamp_s", "canonical_timestamp_s", "norm_pos_x", "norm_pos_y", "confidence"]]
+        eye_data = eye_data[["component_timestamp_s", "canonical_timestamp_s", "norm_pos_x", "norm_pos_y"]]
 
         frame_times = np.linspace(clip_start, clip_end, frames.shape[1])  # Calculate frames  TODO check
         sampled_eye_data = eye_data[get_closest(eye_data["canonical_timestamp_s"], frame_times)]
-        sampled_eye_data = torch.from_numpy(structured_to_unstructured(sampled_eye_data))
+        sampled_eye_data = torch.from_numpy(structured_to_unstructured(sampled_eye_data[["norm_pos_x", "norm_pos_y"]]))
 
         sample_dict = {
             "video": frames,
