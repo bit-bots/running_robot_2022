@@ -8,11 +8,14 @@ from functools import partial
 from itertools import starmap
 
 import torch
+import numpy as np
 from pytorchvideo.data import UniformClipSampler
 from pytorchvideo.data.encoded_video import EncodedVideo
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from numpy.lib.recfunctions import structured_to_unstructured
 
+from nn_gaze_synthesis.utils.utils import get_closest
 
 @dataclass
 class Video:
@@ -25,10 +28,28 @@ class Video:
 
 
 class IndexableVideoDataset(torch.utils.data.Dataset):
-    def __init__(self, videos, sampler, transform):
+    def __init__(self, path, sampler=None, transform=None, sequence_length=20, fps=10):
         self.clips = []
-        self.sampler = sampler
         self.transform = transform
+
+        if sampler is None:
+            self.sampler = UniformClipSampler(
+                clip_duration=Fraction(
+                    sequence_length, fps
+                    ),
+                    backpad_last=True,
+                )
+        else:
+            self.sampler = sampler
+
+        video_path = os.path.join(path, "full_scale")
+        annotation_path = os.path.join(path, "gaze")
+
+        videos = map(partial(os.path.join, video_path), os.listdir(annotation_path))
+        videos = starmap(Video, enumerate(videos))
+        videos = list(filter(lambda video: os.path.exists(video.path), videos))
+
+        assert len(videos) > 0, "No videos loaded ☹️"
 
         self.encoded_videos = {
             v.uid: EncodedVideo.from_path(
@@ -41,6 +62,11 @@ class IndexableVideoDataset(torch.utils.data.Dataset):
             self.clips.extend(
                 list(get_all_clips(v, self.encoded_videos[v.uid].duration, sampler))
             )
+
+        self.gaze_annotations = {
+            v.uid: os.path.join(annotation_path, os.bath.basename(v.path))
+            for v in tqdm(videos)
+        }
 
     def __len__(self):
         return len(self.clips)
@@ -58,6 +84,15 @@ class IndexableVideoDataset(torch.utils.data.Dataset):
 
         frames = self.encoded_videos[video.uid].get_clip(clip_start, clip_end)["video"]
 
+        # Load eye track data
+        annotation_file = self.gaze_annotations[video.uid]
+        eye_data = np.genfromtxt(annotation_file, names=True, delimiter=",")
+        eye_data = eye_data[["component_timestamp_s", "canonical_timestamp_s", "norm_pos_x", "norm_pos_y", "confidence"]]
+
+        frame_times = np.linspace(clip_start, clip_end, frames.shape[1])  # Calculate frames  TODO check
+        sampled_eye_data = eye_data[get_closest(eye_data["canonical_timestamp_s"], frame_times)]
+        sampled_eye_data = torch.from_numpy(structured_to_unstructured(sampled_eye_data))
+
         sample_dict = {
             "video": frames,
             "video_name": video.uid,
@@ -65,9 +100,13 @@ class IndexableVideoDataset(torch.utils.data.Dataset):
             "clip_index": clip_index,
             "start_index": clip_start,
             "end_index": clip_end,
-            "aug_index": aug_index
+            "aug_index": aug_index,
+            "eye_data": sampled_eye_data
         }
-        sample_dict = self.transform(sample_dict)
+
+        if self.transform is not None:
+            sample_dict = self.transform(sample_dict)
+
         return sample_dict
 
 
@@ -84,24 +123,3 @@ def get_all_clips(video, video_length, sampler):
 
         if clip.is_last_clip:
             break
-
-
-def create_dset(path, sequence_length=20, fps=10) -> IndexableVideoDataset:
-    clip_sampler = UniformClipSampler(
-        clip_duration=Fraction(
-            sequence_length, fps
-        ),
-        backpad_last=True,
-    )
-
-    video_path = os.path.join(path, "full_scale")
-    annotation_path = os.path.join(path, "gaze")
-
-    videos = map(partial(os.path.join, video_path), os.listdir(annotation_path))
-    videos = starmap(Video, enumerate(videos))
-    videos = list(filter(lambda video: os.path.exists(video.path), videos))
-
-    assert len(videos) > 0, "No videos loaded :("
-
-    transform = lambda x: x  # TODO
-    return IndexableVideoDataset(videos, clip_sampler, transform)
