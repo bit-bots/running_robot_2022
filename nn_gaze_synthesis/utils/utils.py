@@ -18,5 +18,7 @@ def get_closest(array: np.ndarray, values: np.ndarray) -> np.ndarray:
     return idxs
 
 def gaze_postion_on_image(gaze, image_dim):
-    return gaze * image_dim[:2]
-    return idxs
+    if isinstance(gaze, torch.Tensor):
+        return gaze * torch.tensor(image_dim[:2])
+    elif isinstance(gaze, np.ndarray):
+        return gaze * np.asarray(image_dim[:2])
