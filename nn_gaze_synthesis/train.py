@@ -1,15 +1,21 @@
 import cv2
+import numpy as np
+
 import torch
 import torch.nn as nn
-import numpy as np
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-
 from nn_gaze_synthesis.model import EyePredModel1
 from nn_gaze_synthesis.utils.datasets.dummy_dataset import DummyData
+
+# TODO this is needed see https://github.com/pytorch/vision/issues/5940
+cv2.imshow("debug", np.zeros((244,244,3), dtype=np.uint8))
+cv2.waitKey(0)
+
 from nn_gaze_synthesis.utils.transforms import DEFAULT_TRANSFORMS
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 
 def train(model):
