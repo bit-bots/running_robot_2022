@@ -9,6 +9,7 @@ from itertools import starmap
 
 import torch
 import numpy as np
+import torchvision.transforms.functional as f
 from pytorchvideo.data import UniformClipSampler
 from pytorchvideo.data.encoded_video import EncodedVideo
 from torch.utils.data import DataLoader
@@ -27,8 +28,8 @@ class Video:
     path: str
 
 
-class IndexableVideoDataset(torch.utils.data.Dataset):
-    def __init__(self, path, sampler=None, transform=None, sequence_length=20, fps=10):
+class Ego4DDataset(torch.utils.data.Dataset):
+    def __init__(self, path, sampler=None, transform=None, sequence_length=20, fps=30):
         self.clips = []
         self.transform = transform
 
@@ -82,32 +83,26 @@ class IndexableVideoDataset(torch.utils.data.Dataset):
             _,
         ) = clip
 
-        frames = self.encoded_videos[video.uid].get_clip(clip_start, clip_end)["video"]
+        frames = self.encoded_videos[video.uid].get_clip(clip_start, clip_end)["video"].transpose(0, 1)
 
         # Load eye track data
         annotation_file = self.gaze_annotations[video.uid]
         eye_data = np.genfromtxt(annotation_file, names=True, delimiter=",")
         eye_data = eye_data[["component_timestamp_s", "canonical_timestamp_s", "norm_pos_x", "norm_pos_y"]]
 
-        frame_times = np.linspace(clip_start, clip_end, frames.shape[1])  # Calculate frames  TODO check
+        frame_times = np.linspace(clip_start, clip_end, frames.shape[0])  # Calculate frames  TODO check
         sampled_eye_data = eye_data[get_closest(eye_data["canonical_timestamp_s"], frame_times)]
         sampled_eye_data = torch.from_numpy(structured_to_unstructured(sampled_eye_data[["norm_pos_x", "norm_pos_y"]]))
 
-        sample_dict = {
-            "video": frames,
-            "video_name": video.uid,
-            "video_index": idx,
-            "clip_index": clip_index,
-            "start_index": clip_start,
-            "end_index": clip_end,
-            "aug_index": aug_index,
-            "eye_data": sampled_eye_data
-        }
+        # Flip axis, TODO evaluate
+        sampled_eye_data[:, 1] = 1 - sampled_eye_data[:, 1]
+
+        sample = (f.resize(frames, (224, 224)).float() / 255, sampled_eye_data.float())
 
         if self.transform is not None:
-            sample_dict = self.transform(sample_dict)
+            sample = self.transform(sample)
 
-        return sample_dict
+        return sample
 
 
 def get_all_clips(video, video_length, sampler):
