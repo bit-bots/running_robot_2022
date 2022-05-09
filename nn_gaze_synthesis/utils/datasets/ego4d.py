@@ -1,5 +1,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates. All Rights Reserved.
 
+import sys
+import gc
 import os
 from fractions import Fraction
 from typing import Any, List
@@ -12,6 +14,7 @@ import numpy as np
 import torchvision.transforms.functional as f
 from pytorchvideo.data import UniformClipSampler
 from pytorchvideo.data.encoded_video import EncodedVideo
+from pytorchvideo.transforms.functional import uniform_temporal_subsample
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from numpy.lib.recfunctions import structured_to_unstructured
@@ -29,7 +32,9 @@ class Video:
 
 
 class Ego4DDataset(torch.utils.data.Dataset):
-    def __init__(self, path, sampler=None, transform=None, sequence_length=20, fps=30):
+    def __init__(self, path, sampler=None, transform=None, sequence_length=40, fps=15):
+        self.fps = fps
+        self.sequence_length = sequence_length
         self.clips = []
         self.transform = transform
 
@@ -64,10 +69,13 @@ class Ego4DDataset(torch.utils.data.Dataset):
                 list(get_all_clips(v, self.encoded_videos[v.uid].duration, self.sampler))
             )
 
-        self.gaze_annotations = {
-            v.uid: os.path.join(annotation_path, os.path.basename(v.path))
-            for v in tqdm(videos)
-        }
+        self.gaze_annotations = {}
+
+        for v in tqdm(videos):
+            annotation_file = os.path.join(annotation_path, os.path.basename(v.path))
+            eye_data = np.genfromtxt(annotation_file, names=True, delimiter=",")
+            eye_data = eye_data[["component_timestamp_s", "canonical_timestamp_s", "norm_pos_x", "norm_pos_y"]]
+            self.gaze_annotations[v.uid] = eye_data
 
     def __len__(self):
         return len(self.clips)
@@ -82,15 +90,14 @@ class Ego4DDataset(torch.utils.data.Dataset):
             aug_index,
             _,
         ) = clip
+        
+        gc.collect()
 
-        frames = self.encoded_videos[video.uid].get_clip(clip_start, clip_end)["video"].transpose(0, 1)
+        frames = uniform_temporal_subsample(self.encoded_videos[video.uid].get_clip(clip_start, clip_end)["video"], self.sequence_length).transpose(0, 1)
 
         # Load eye track data
-        annotation_file = self.gaze_annotations[video.uid]
-        eye_data = np.genfromtxt(annotation_file, names=True, delimiter=",")
-        eye_data = eye_data[["component_timestamp_s", "canonical_timestamp_s", "norm_pos_x", "norm_pos_y"]]
-
-        frame_times = np.linspace(clip_start, clip_end, frames.shape[0])  # Calculate frames  TODO check
+        eye_data = self.gaze_annotations[video.uid]
+        frame_times = np.linspace(clip_start, clip_end, frames.shape[0])  # Calculate frames
         sampled_eye_data = eye_data[get_closest(eye_data["canonical_timestamp_s"], frame_times)]
         sampled_eye_data = torch.from_numpy(structured_to_unstructured(sampled_eye_data[["norm_pos_x", "norm_pos_y"]]))
 
