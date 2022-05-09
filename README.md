@@ -6,8 +6,8 @@ Transformer based neural gaze prediction
 Examples showing ground truth (red) as well as prediction (green) on unseen data
 
 ![](https://i.imgur.com/c8lrLo9.gif)
-![](https://i.imgur.com/KSLYbNa.gif)
 ![](https://i.imgur.com/AJy90j8.gif)
+<!-- ![](https://i.imgur.com/KSLYbNa.gif) -->
 
 ## Installation
 
