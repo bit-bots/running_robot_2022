@@ -25,8 +25,8 @@ def predict(model):
 
     with torch.no_grad():
         for run in range(1, runs + 1):
-            model.reset_history()
             for i, batch in enumerate(tqdm(data_loader)):
+                model.reset_history()
                 data, targets = batch
                 data = data.to(DEVICE)
                 targets = targets.to(DEVICE)
