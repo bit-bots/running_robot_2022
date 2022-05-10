@@ -44,12 +44,7 @@ def train(model):
             loss.backward()
             if i % debug_show_interval == 0:
                 for si in range(0, int(data.size(1))):
-                    pred_point = tuple((output[0,si].detach().cpu().numpy() * 224).astype(int))
-                    target_point = tuple((targets[0,si].detach().cpu().numpy() * 224).astype(int)) 
-                    canvas = np.ascontiguousarray((data[0,si].detach().cpu()*255).permute(1,2,0).numpy().astype(np.uint8), dtype=np.uint8)
-                    canvas = cv2.cvtColor(canvas, cv2.COLOR_RGB2BGR)
-                    canvas = cv2.circle(canvas, target_point, 4, (0, 0, 255), -1)
-                    canvas = cv2.circle(canvas, pred_point, 4, (0, 255, 0), -1)
+                    canvas = viz.draw_pred_and_target(data[0,si], output[0,si], targets[0,si])
                     if debug_show:
                         cv2.imshow(f"debug", canvas)
                         cv2.waitKey(1)
