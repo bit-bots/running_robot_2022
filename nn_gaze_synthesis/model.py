@@ -1,6 +1,7 @@
 import math
 import torch
 import torch.nn as nn
+from torchinfo import summary
 
 
 class PositionalEncoding(nn.Module):
@@ -25,6 +26,7 @@ class PositionalEncoding(nn.Module):
 class EyePredModel1(nn.Module):
     def __init__(self, img_size=224, token_size=128, max_len=5000) -> None:
         super().__init__()
+        self.img_size = img_size
         self.token_size = token_size
         resnet = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
         self.cnn_encoder = nn.Sequential(*(list(resnet.children())[:-2])) #Remove last layers from resnet
@@ -65,3 +67,6 @@ class EyePredModel1(nn.Module):
         # Return input to shape [batch_size, sequence, token]
         x = x.transpose(0, 1)
         return x
+
+    def __str__(self):
+        return str(summary(self, (1, 3, self.img_size, self.img_size), verbose=0))

@@ -252,12 +252,12 @@ python-versions = ">=3.7.0"
 typing-extensions = "*"
 
 [[package]]
-name = "torch-summary"
-version = "1.4.5"
+name = "torchinfo"
+version = "1.6.5"
 description = "Model summary in PyTorch, based off of the original torchsummary."
 category = "main"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 
 [[package]]
 name = "torchvision"
@@ -329,7 +329,7 @@ PyYAML = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "aece5d4a04c5cc3d611b85384b7fef018f9ddbe4b5ea15de4c5978adebf921ee"
+content-hash = "f995fe4ef2b764ffa4027665fa2fb343a20a0dfc8a4f163adf43a22c0b905624"
 
 [metadata.files]
 av = [
@@ -551,9 +551,9 @@ torch = [
     {file = "torch-1.11.0-cp39-none-macosx_10_9_x86_64.whl", hash = "sha256:50fd9bf85c578c871c28f1cb0ace9dfc6024401c7f399b174fb0f370899f4454"},
     {file = "torch-1.11.0-cp39-none-macosx_11_0_arm64.whl", hash = "sha256:0e48af66ad755f0f9c5f2664028a414f57c49d6adc37e77e06fe0004da4edb61"},
 ]
-torch-summary = [
-    {file = "torch_summary-1.4.5-py3-none-any.whl", hash = "sha256:6127efb631f34ba8cbd28e92e8f7ddc2903ea0cbc44c80f15b7363b8f558cd8c"},
-    {file = "torch_summary-1.4.5.tar.gz", hash = "sha256:44eac21777dbbda7b8404d57a43c09d83fd9c93d0c1f0c960b5083ccb24d6d21"},
+torchinfo = [
+    {file = "torchinfo-1.6.5-py3-none-any.whl", hash = "sha256:3eaf4830342affc23c8c5e9242c1882b2ec0216190d49f1e61fc5de99ea0d059"},
+    {file = "torchinfo-1.6.5.tar.gz", hash = "sha256:560fd35c3fbf54c22fd701f2c1a3ae123e0c0d3abdd25528f7d9fe369a6ed2e2"},
 ]
 torchvision = [
     {file = "torchvision-0.12.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:693656e6790b6ab21e4a6e87e81c2982bad9e455b5eb24e14bb672382ec6130f"},

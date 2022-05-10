@@ -65,7 +65,12 @@ def train(model):
 
 if __name__ == "__main__":
     print("Load model")
-    model = EyePredModel1(img_size=244, token_size=128, max_len=50)
+    img_size = 224
+    max_len = 50
+    model = EyePredModel1(img_size=img_size, token_size=128, max_len=max_len)
     model.to(DEVICE)
+    # Show summary
+    print("Model during inference:")
+    print(model)
     train(model)
 
