@@ -1,4 +1,6 @@
 import math
+from collections import deque
+
 import torch
 import torch.nn as nn
 from torchinfo import summary
@@ -38,6 +40,13 @@ class EyePredModel1(nn.Module):
         self.decoder = nn.Linear(self.token_size, 2)
         self.activation = nn.LeakyReLU(inplace=True)
         self.src_mask = None
+        self.embedding_cache = deque(maxlen=max_len)
+
+    def reset_history(self):
+        """
+        Reset the history token cache if a new sequence begins 
+        """
+        self.embedding_cache.clear()
 
     def _generate_square_subsequent_mask(self, sz):
         mask = (torch.triu(torch.ones(sz, sz)) == 1).transpose(0, 1)
@@ -45,18 +54,36 @@ class EyePredModel1(nn.Module):
         return mask
 
     def forward(self, x: torch.Tensor):
-        # x is in shape, [batch_position, sequence_position, channel, img_x, img_y]
-        batch_size, sequence_length, channels, img_size_x, img_size_y = x.size()
-        # Combine sequence_position with batch_position, to process all images in the sequence with shared weights
-        x = x.view(batch_size * sequence_length, channels, img_size_x, img_size_y)
-        # Apply CNN reduction to all images in all batches
-        x = self.cnn_encoder(x)
-        # Reduce the resnet output to the token size
-        x = self.image_embedding(self.activation(self.cnn_feature_reduction(x)).flatten(start_dim=1))
-        # Recreate the sequence demension
-        x = x.view(batch_size, sequence_length, self.token_size)
-        # Bring input from shape [batch_size, sequence, token] in the shape [sequence, batch_size, token]
-        x = x.transpose(0, 1)
+        # Check if we are in training mode 
+        # In this case all images in the sequence are provided at the same time
+        # and all resnet instances run in parralel 
+        # In eval only one image is provided and we cache the resnet embeddings
+        if self.training:
+            # x is in shape, [batch_position, sequence_position, channel, img_x, img_y]
+            batch_size, sequence_length, channels, img_size_x, img_size_y = x.size()
+            # Combine sequence_position with batch_position, to process all images in the sequence with shared weights
+            x = x.view(batch_size * sequence_length, channels, img_size_x, img_size_y)
+            # Apply CNN reduction to all images in all batches
+            x = self.cnn_encoder(x)
+            # Reduce the resnet output to the token size
+            x = self.image_embedding(self.activation(self.cnn_feature_reduction(x)).flatten(start_dim=1))
+            # Recreate the sequence demension
+            x = x.view(batch_size, sequence_length, self.token_size)
+            # Bring input from shape [batch_size, sequence, token] in the shape [sequence, batch_size, token]
+            x = x.transpose(0, 1)
+        else:
+            # Get frame dimensions
+            batch_size, channels, img_size_x, img_size_y = x.size()
+            # Calculate embedding for the new frame
+            x = self.cnn_encoder(x)
+            # Reduce the resnet output to the token size
+            x = self.image_embedding(self.activation(self.cnn_feature_reduction(x)).flatten(start_dim=1))
+            # Add the token of the new frame to the embedding cache
+            self.embedding_cache.append(x)
+            # Get sequence dimensions
+            sequence_length = len(self.embedding_cache)
+            # Create token sequence tensor
+            x = torch.stack(tuple(self.embedding_cache)) 
         # Mask future in transformer
         if self.src_mask is None or self.src_mask.size(0) != sequence_length:
             device = x.device
@@ -67,6 +94,6 @@ class EyePredModel1(nn.Module):
         # Return input to shape [batch_size, sequence, token]
         x = x.transpose(0, 1)
         return x
-
+    
     def __str__(self):
         return str(summary(self, (1, 3, self.img_size, self.img_size), verbose=0))
