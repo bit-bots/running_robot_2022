@@ -1,17 +1,18 @@
 import time
-import cv2
-import numpy as np
 
+import cv2
 import torch
 import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.data import DataLoader
+from torchinfo import summary
 from profilehooks import profile
 
 from nn_gaze_synthesis.model import EyePredModel1
 from nn_gaze_synthesis.utils.datasets.dummy_dataset import DummyData
 from nn_gaze_synthesis.utils.datasets.ego4d import Ego4DDataset
 from nn_gaze_synthesis.utils.transforms import DEFAULT_TRANSFORMS
+from nn_gaze_synthesis.utils import viz
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -31,7 +32,7 @@ def train(model):
     debug_show = False
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.5)
     criterion = nn.MSELoss()
 
     for epoch in range(1, epochs + 1):
@@ -56,7 +57,7 @@ def train(model):
                 optimizer.step()
                 optimizer.zero_grad()
                 print(f"Loss: {loss.item()}")
-        #scheduler.step()
+        scheduler.step()
 
 if __name__ == "__main__":
     print("Load model")
