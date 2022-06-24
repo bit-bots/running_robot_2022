@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader
 from nn_gaze_synthesis.model import EyePredModel1
 from nn_gaze_synthesis.utils.datasets.dummy_dataset import DummyData
 from nn_gaze_synthesis.utils.datasets.ego4d import Ego4DDataset
+from nn_gaze_synthesis.utils.datasets.pupilcore import PupilcoreTrackerDataset
 from nn_gaze_synthesis.utils.transforms import DEFAULT_TRANSFORMS
 from nn_gaze_synthesis.utils import viz
 
@@ -17,7 +18,7 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def predict(model):
     model.eval()
 
-    data_set = Ego4DDataset("/srv/ssd_nvm/dataset/ego4d/ego4d/v1", sequence_length=200)
+    data_set = PupilcoreTrackerDataset("/homes/17vahl/Downloads/pupilcore_trials", sequence_length=400)
     data_loader = DataLoader(data_set, batch_size=1, shuffle=True)
 
     runs = 500
@@ -31,7 +32,7 @@ def predict(model):
                 data = data.to(DEVICE)
                 targets = targets.to(DEVICE)
                 
-                # Move the sequence dimension to the from
+                # Move the sequence dimension to the front
                 data = data.transpose(0, 1)
                 targets = targets.transpose(0, 1)
 
@@ -50,7 +51,7 @@ if __name__ == "__main__":
     img_size = 224
     max_len = 50
     model = EyePredModel1(img_size=img_size, token_size=128, max_len=max_len)
-    model.load_state_dict(torch.load("checkpoints/model_epoch_1_step_3000.pth"))
+    model.load_state_dict(torch.load("checkpoints/model_epoch_3_step_9500.pth"))
     model.to(DEVICE)
     # Show summary
     print("Model during inference:")
