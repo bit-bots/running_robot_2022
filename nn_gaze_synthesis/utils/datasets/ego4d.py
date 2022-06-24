@@ -101,7 +101,7 @@ class Ego4DDataset(torch.utils.data.Dataset):
         sampled_eye_data = eye_data[get_closest(eye_data["canonical_timestamp_s"], frame_times)]
         sampled_eye_data = torch.from_numpy(structured_to_unstructured(sampled_eye_data[["norm_pos_x", "norm_pos_y"]]))
 
-        # Flip axis, TODO evaluate
+        # Flip axis
         sampled_eye_data[:, 1] = 1 - sampled_eye_data[:, 1]
 
         sample = (f.resize(frames, (224, 224)).float() / 255, sampled_eye_data.float())
