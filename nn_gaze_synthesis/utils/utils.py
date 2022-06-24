@@ -19,7 +19,7 @@ def get_closest(array: np.ndarray, values: np.ndarray) -> np.ndarray:
 
 def gaze_postion_on_image(gaze, image_dim):
     # Mirror axis
-    gaze[1] = int(image_dim[1]) - gaze[1]
+    gaze[1] = 1 - gaze[1]
     # Scale gazes
     if isinstance(gaze, torch.Tensor):
         return gaze * torch.tensor(image_dim[:2])
