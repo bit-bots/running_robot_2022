@@ -1,0 +1,5 @@
+$env:WEBOTS_HOME='C:\Users\florian\AppData\Local\Programs\Webots'
+$env:PATH += ';C:\Users\florian\AppData\Local\Programs\Webots\lib\controller'
+$env:PYTHONPATH += ';C:\Users\florian\AppData\Local\Programs\Webots\lib\controller\python39'
+$env:PATH += ';C:\Users\florian\AppData\Local\Programs\Webots\projects\robots\robotis\darwin-op\libraries'
+$env:PYTHONPATH += ';C:\Users\florian\AppData\Local\Programs\Webots\projects\robots\robotis\darwin-op\libraries\python39'

@@ -26,7 +26,7 @@ def train(model):
     debug_show = False
 
     # Get Dataset
-    train_set = RrcDataset("/srv/ssd_nvm/17vahl/rrc_2022/gen_data", 10)
+    train_set = RrcDataset("C:\\Users\\florian\\rrc\\gen_data\\", 10)
 
     # Create Dataloader
     train_data_loader = DataLoader(train_set, batch_size=64, num_workers=24, prefetch_factor=2, shuffle=True)

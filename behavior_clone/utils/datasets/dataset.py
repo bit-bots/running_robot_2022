@@ -32,7 +32,7 @@ class RrcDataset(Dataset):
 
         # Collect all filenames of images for each run
         # [[... filenames of images]]
-        runs = [sorted(glob.glob(f"{run_path}/*.png")) for run_path in sorted(glob.glob(f"{dataset_path}/*"))]
+        runs = [sorted(glob.glob(os.path.join(run_path, "*.png"))) for run_path in sorted(glob.glob(os.path.join(dataset_path, "*")))]
 
         # Generate filename sequences of images of given length
         self.sequences = []
