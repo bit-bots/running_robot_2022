@@ -7,11 +7,10 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader, random_split
 from profilehooks import profile
 
-from nn_gaze_synthesis.model import EyePredModel1
-from nn_gaze_synthesis.utils.datasets.dummy_dataset import DummyData
-from nn_gaze_synthesis.utils.datasets.ego4d import Ego4DDataset
-from nn_gaze_synthesis.utils.transforms import DEFAULT_TRANSFORMS
-from nn_gaze_synthesis.utils import viz
+from behavior_clone.model import EyePredModel1
+from behavior_clone.utils.datasets.dataset import RrcDataset
+from behavior_clone.utils.transforms import DEFAULT_TRANSFORMS
+from behavior_clone.utils import viz
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -20,32 +19,22 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def train(model):
     model.train()
 
-    # Params TODO config file, ...
     lr = 0.0001
-    epochs = 500
+    epochs = 20
     debug_show_interval = 30
-    gradient_accumulations = 12
+    gradient_accumulations = 2
     debug_show = False
-    evaluation_interval = 500 # Batches
-    validation_split = 0.02
 
     # Get Dataset
-    #data_set = DummyData(transform=DEFAULT_TRANSFORMS)
-    data_set = Ego4DDataset("/srv/ssd_nvm/dataset/ego4d/ego4d/v1")
-
-    # Split into train / validation partitions
-    n_val = int(round(len(data_set) * validation_split))
-    n_train = len(data_set) - n_val
-    train_set, val_set = random_split(data_set, [n_train, n_val], generator=torch.Generator().manual_seed(0))
+    train_set = RrcDataset("/srv/ssd_nvm/17vahl/rrc_2022/gen_data", 10)
 
     # Create Dataloader
-    train_data_loader = DataLoader(train_set, batch_size=1, num_workers=4, prefetch_factor=2, shuffle=True)
-    val_data_loader = DataLoader(val_set, batch_size=1, num_workers=4, prefetch_factor=2, shuffle=False)
+    train_data_loader = DataLoader(train_set, batch_size=64, num_workers=24, prefetch_factor=2, shuffle=True)
 
     # Create Optimizer, Scheduler, ...
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.5)
-    criterion = nn.MSELoss()
+    criterion = nn.CrossEntropyLoss()
 
     # Iterate over train dataset
     for epoch in range(1, epochs + 1):
@@ -57,12 +46,15 @@ def train(model):
             # Run model
             output = model(data)
             # Calculate loss
-            loss = criterion(output, targets)
+            loss = criterion(output.reshape(-1, 5), targets.long().reshape(-1))
+            print(loss.detach().cpu())
+            print(torch.argmax(output[0], axis=1).detach().cpu().tolist())
+            print(targets[0].detach().cpu().long().tolist())
             # Calc gradients
             loss.backward()
 
             # Make a viz pintout to a window or folder showing the image, target and prediction for a sequence
-            if i % debug_show_interval == 0:
+            if i % debug_show_interval == 0 and False:
                 # Iterate over sequence dimension
                 for si in range(0, int(data.size(1))):
                     # Draw both on the image
@@ -81,27 +73,20 @@ def train(model):
                 optimizer.zero_grad()
                 # print(f"Loss: {loss.item()}")
 
-            # Evaluate network and make a checkpoint
-            if i % evaluation_interval == 0 and i != 0:
-                print("Evaluate...")
-                # TODO evaluation
-                # Save model
-                checkpoint_name = f"checkpoints/model_epoch_{epoch}_step_{i}.pth"
-                print(f"Save checkpoint '{checkpoint_name}'")
-                torch.save(model.state_dict(), checkpoint_name)
-
         # Step the lerning rate sheduler
         scheduler.step()
+        checkpoint_name = f"checkpoints/model_epoch_{epoch}_step_{i}.pth"
+        print(f"Save checkpoint '{checkpoint_name}'")
+        torch.save(model.state_dict(), checkpoint_name)
+
 
 if __name__ == "__main__":
     print("Load model")
-    img_size = 224
-    max_len = 50
+    img_size = (129, 160)
+    max_len = 10
     token_size=128
     model = EyePredModel1(img_size=img_size, token_size=token_size, max_len=max_len)
     model.to(DEVICE)
     # Show summary
-    print("Model during inference:")
-    print(model)
     train(model)
 

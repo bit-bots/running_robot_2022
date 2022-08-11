@@ -26,18 +26,21 @@ class PositionalEncoding(nn.Module):
 
 
 class EyePredModel1(nn.Module):
-    def __init__(self, img_size=224, token_size=128, max_len=5000) -> None:
+    def __init__(self, img_size=(224, 224), token_size=128, max_len=5000, frozen_backbone=False) -> None:
         super().__init__()
         self.img_size = img_size
         self.token_size = token_size
         resnet = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
+        if frozen_backbone:
+            for param in resnet.parameters():
+                param.requires_grad = False
         self.cnn_encoder = nn.Sequential(*(list(resnet.children())[:-2])) #Remove last layers from resnet
         self.cnn_feature_reduction = nn.Conv2d(512, 32, 1) # Reduces the number of feature maps of the resnet
-        self.image_embedding = nn.Linear(32 * 7 * 7, token_size) # Maps resnet output to embeddings for the transformer
+        self.image_embedding = nn.Linear(32 * 5 * 4, token_size) # Maps resnet output to embeddings for the transformer
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=self.token_size, nhead=4, dropout=0.1)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=3)
         self.position_encoding = PositionalEncoding(token_size, max_len)
-        self.decoder = nn.Linear(self.token_size, 2)
+        self.decoder = nn.Linear(self.token_size, 5)
         self.activation = nn.LeakyReLU(inplace=True)
         self.src_mask = None
         self.embedding_cache = deque(maxlen=max_len)
@@ -96,4 +99,4 @@ class EyePredModel1(nn.Module):
         return x
     
     def __str__(self):
-        return str(summary(self, (1, 3, self.img_size, self.img_size), verbose=0))
+        return str(summary(self, (1, 3, self.img_size[0], self.img_size[1]), verbose=0))

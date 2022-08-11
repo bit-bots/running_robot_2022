@@ -1,8 +1,6 @@
 import cv2
 import numpy as np
 
-from nn_gaze_synthesis.utils.utils import gaze_postion_on_image
-
 
 def show_sample(sample):
     """
