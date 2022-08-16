@@ -100,3 +100,63 @@ class EyePredModel1(nn.Module):
     
     def __str__(self):
         return str(summary(self, (1, 3, self.img_size[0], self.img_size[1]), verbose=0))
+
+
+class MLPSeq(nn.Module):
+    def __init__(self, img_size=(224, 224), token_size=128, max_len=5, frozen_backbone=False) -> None:
+        super().__init__()
+        self.img_size = img_size
+        self.token_size = token_size
+        resnet = torch.hub.load('pytorch/vision:v0.10.0', 'resnet18', pretrained=True)
+        if frozen_backbone:
+            for param in resnet.parameters():
+                param.requires_grad = False
+        self.cnn_encoder = nn.Sequential(*(list(resnet.children())[:-2])) #Remove last layers from resnet
+        self.cnn_feature_reduction = nn.Conv2d(512, 32, 1) # Reduces the number of feature maps of the resnet
+        self.image_embedding = nn.Linear(32 * 5 * 4, token_size) # Maps resnet output to embeddings for the transformer
+        self.aggregation = nn.Linear(self.token_size * max_len, self.token_size)
+        self.decoder = nn.Linear(self.token_size, 5)
+        self.activation = nn.LeakyReLU(inplace=True)
+        self.embedding_cache = deque([torch.zeros((1, token_size))] * max_len, maxlen=max_len)
+
+    def reset_history(self):
+        """
+        Reset the history token cache if a new sequence begins 
+        """
+        self.embedding_cache.clear()
+
+    def forward(self, x: torch.Tensor):
+        # Check if we are in training mode 
+        # In this case all images in the sequence are provided at the same time
+        # and all resnet instances run in parralel 
+        # In eval only one image is provided and we cache the resnet embeddings
+        if self.training:
+            # x is in shape, [batch_position, sequence_position, channel, img_x, img_y]
+            batch_size, sequence_length, channels, img_size_x, img_size_y = x.size()
+            # Combine sequence_position with batch_position, to process all images in the sequence with shared weights
+            x = x.view(batch_size * sequence_length, channels, img_size_x, img_size_y)
+            # Apply CNN reduction to all images in all batches
+            x = self.cnn_encoder(x)
+            # Reduce the resnet output to the token size
+            x = self.image_embedding(self.activation(self.cnn_feature_reduction(x)).flatten(start_dim=1))
+            # Recreate the sequence demension
+            x = x.view(batch_size, sequence_length * self.token_size)
+        else:
+            # Get frame dimensions
+            batch_size, channels, img_size_x, img_size_y = x.size()
+            # Calculate embedding for the new frame
+            x = self.cnn_encoder(x)
+            # Reduce the resnet output to the token size
+            x = self.image_embedding(self.activation(self.cnn_feature_reduction(x)).flatten(start_dim=1))
+            # Add the token of the new frame to the embedding cache
+            self.embedding_cache.append(x)
+            # Get sequence dimensions
+            sequence_length = len(self.embedding_cache)
+            # Create token sequence tensor
+            x = torch.cat(tuple(self.embedding_cache)) 
+        # Run transformer
+        x = self.decoder(self.activation(self.aggregation(self.activation(x))))
+        return x
+    
+    def __str__(self):
+        return str(summary(self, (1, 3, self.img_size[0], self.img_size[1]), verbose=0))

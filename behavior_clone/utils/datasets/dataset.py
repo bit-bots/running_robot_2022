@@ -38,7 +38,7 @@ class RrcDataset(Dataset):
         self.sequences = []
         for run in runs:
             if len(run) < self.sequence_length:
-                print(f"Skipping run as it contains fewer images as sequence length {self.sequence_length}: '{os.path.dirname(run[0])}'")
+                print(f"Skipping run as it contains fewer images as sequence length {self.sequence_length}'")
                 continue
             for i in range(self.sequence_length - 1, len(run)):
                 self.sequences.append(run[i - (self.sequence_length - 1):i + 1])
