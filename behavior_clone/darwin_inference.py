@@ -73,19 +73,27 @@ gaitManager.setBalanceEnable(True)
 def run_motion(file, robot, joints):
     with open(file, newline='') as csvfile:
         reader = csv.DictReader(csvfile)
-        curr_time = 0
+        curr_time = 0.0
         for row in reader:
-            for joint in joints:
-                motor = robot.getDevice(joint)
-                motor.setVelocity(motor.getMaxVelocity())
-                motor.setPosition(float(row[joint]))
             duration_str = row["#WEBOTS_MOTION"].split(":")
             # Duration in sec
             duration = int(duration_str[0]) * 60 + int(duration_str[1]) + int(duration_str[2]) / 1000
+            duration -= curr_time
+            curr_time += duration
+            diffs = {}
+            for joint in joints:
+                current_postion = robot.getDevice(joint  + 'S').getValue()
+                diffs[joint] = (current_postion, float(row[joint]) - current_postion)
             # Wait for duration
             for i in range(int(round((duration * 1000) / timestep))):
+                for joint in joints:
+                    interpolated_angle = diffs[joint][0] + diffs[joint][1] * ((i + 1) / int(round((duration * 1000) / timestep)))
+                    motor = robot.getDevice(joint)
+                    motor.setVelocity(motor.getMaxVelocity())
+                    motor.setPosition(float(interpolated_angle))
                 robot.step(timestep)
 
+motionManager.playPage(1)
 run_motion("C:\\Users\\florian\\rrc\\running_robot_2022\\animations\\TimonsRolle.motion", robot, positionSensorNames)
 motionManager.playPage(11)
 
@@ -111,7 +119,28 @@ while True:
     action = ACTION_CHARACTERS[int(output.detach().long().cpu())]
     print(action)
 
-    if action == 'w':
+    if action == 'r':
+        gaitManager.setXAmplitude(0.5)
+        gaitManager.setYAmplitude(0.0)
+        gaitManager.setAAmplitude(0.0)
+        for i in range(500):
+            robot.step(timestep)
+            gaitManager.step(basicTimeStep)
+        gaitManager.setXAmplitude(0.0)
+        gaitManager.setYAmplitude(0.0)
+        gaitManager.setAAmplitude(0.0)
+        motionManager.playPage(9)
+        for i in range(30):
+            robot.step(timestep)
+        motionManager.playPage(1)
+        run_motion(os.path.join("animations", "TimonsRolle.motion"), robot, positionSensorNames)
+        for i in range(30):
+            robot.step(timestep)
+        motionManager.playPage(1)
+        for i in range(30):
+            robot.step(timestep)
+        motionManager.playPage(11)
+    elif action == 'w':
         gaitManager.setXAmplitude(1.0)
         gaitManager.setYAmplitude(0.0)
         gaitManager.setAAmplitude(0.0)
