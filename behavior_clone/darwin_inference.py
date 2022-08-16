@@ -1,6 +1,7 @@
 import time
 
 import cv2
+import csv
 import torch
 from tqdm import tqdm
 from torch.utils.data import DataLoader
@@ -11,7 +12,7 @@ import cv2
 import numpy as np
 import datetime
 
-from behavior_clone.model import EyePredModel1
+from behavior_clone.model import EyePredModel1, MLPSeq
 
 import controller
 from controller import Robot
@@ -20,14 +21,14 @@ from managers import RobotisOp2GaitManager, RobotisOp2MotionManager
 
 CAMERA_DIVIDER = 50
 ACTION_CHARACTERS = ['w', 'a', 's', 'd', 'n']
-CHECKPOINT = 'C:\\Users\\florian\\rrc\\running_robot_2022\\checkpoints\\model_epoch_11_step_123.pth' 
+CHECKPOINT = 'C:\\Users\\florian\\rrc\\running_robot_2022\\checkpoints\\model_epoch_200_step_129.pth' 
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 print("Load model")
 img_size = (120, 160)
-max_len = 10
-model = EyePredModel1(img_size=img_size, token_size=128, max_len=max_len)
+max_len = 5
+model = MLPSeq(img_size=img_size, token_size=128, max_len=max_len)
 model.load_state_dict(torch.load(CHECKPOINT, map_location=DEVICE))
 model.to(DEVICE)
 model.eval()
@@ -69,6 +70,25 @@ gaitManager.setXAmplitude(0.0)
 gaitManager.setYAmplitude(0.0)
 gaitManager.setBalanceEnable(True)
 
+def run_motion(file, robot, joints):
+    with open(file, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        curr_time = 0
+        for row in reader:
+            for joint in joints:
+                motor = robot.getDevice(joint)
+                motor.setVelocity(motor.getMaxVelocity())
+                motor.setPosition(float(row[joint]))
+            duration_str = row["#WEBOTS_MOTION"].split(":")
+            # Duration in sec
+            duration = int(duration_str[0]) * 60 + int(duration_str[1]) + int(duration_str[2]) / 1000
+            # Wait for duration
+            for i in range(int(round((duration * 1000) / timestep))):
+                robot.step(timestep)
+
+run_motion("C:\\Users\\florian\\rrc\\running_robot_2022\\animations\\TimonsRolle.motion", robot, positionSensorNames)
+motionManager.playPage(11)
+
 counter = 0
 while True:
     for i in range(CAMERA_DIVIDER):
@@ -85,7 +105,7 @@ while True:
 
     data = data.to(DEVICE)
 
-    output = torch.argmax(model(data)[0,-1])
+    output = torch.argmax(model(data)[0])
     print(output)
 
     action = ACTION_CHARACTERS[int(output.detach().long().cpu())]

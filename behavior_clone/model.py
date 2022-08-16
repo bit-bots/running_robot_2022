@@ -153,7 +153,7 @@ class MLPSeq(nn.Module):
             # Get sequence dimensions
             sequence_length = len(self.embedding_cache)
             # Create token sequence tensor
-            x = torch.cat(tuple(self.embedding_cache)) 
+            x = torch.cat(tuple(self.embedding_cache), axis=1) 
         # Run transformer
         x = self.decoder(self.activation(self.aggregation(self.activation(x))))
         return x
