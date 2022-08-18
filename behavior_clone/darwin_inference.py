@@ -20,8 +20,8 @@ from managers import RobotisOp2GaitManager, RobotisOp2MotionManager
 
 
 CAMERA_DIVIDER = 50
-ACTION_CHARACTERS = ['w', 'a', 's', 'd', 'n']
-CHECKPOINT = 'C:\\Users\\florian\\rrc\\running_robot_2022\\checkpoints\\model_epoch_200_step_129.pth' 
+ACTION_CHARACTERS = ['w', 'a', 's', 'd', 'n', 'r']
+CHECKPOINT = 'C:\\Users\\florian\\rrc\\running_robot_2022\\checkpoints\\model_epoch_10_step_151.pth' 
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -92,10 +92,6 @@ def run_motion(file, robot, joints):
                     motor.setVelocity(motor.getMaxVelocity())
                     motor.setPosition(float(interpolated_angle))
                 robot.step(timestep)
-
-motionManager.playPage(1)
-run_motion("C:\\Users\\florian\\rrc\\running_robot_2022\\animations\\TimonsRolle.motion", robot, positionSensorNames)
-motionManager.playPage(11)
 
 counter = 0
 while True:
