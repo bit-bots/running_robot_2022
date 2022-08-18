@@ -6,7 +6,7 @@ import cv2
 from torch.utils.data import Dataset
 
 
-ACTION_CHARACTERS = ['w', 'a', 's', 'd', 'n']
+ACTION_CHARACTERS = ['w', 'a', 's', 'd', 'n', 'r']
 
 
 class RrcDataset(Dataset):

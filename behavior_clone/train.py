@@ -9,8 +9,6 @@ from profilehooks import profile
 
 from behavior_clone.model import EyePredModel1, MLPSeq
 from behavior_clone.utils.datasets.dataset import RrcDataset
-from behavior_clone.utils.transforms import DEFAULT_TRANSFORMS
-from behavior_clone.utils import viz
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -20,7 +18,7 @@ def train(model):
     model.train()
 
     lr = 0.0001
-    epochs = 20
+    epochs = 200
     debug_show_interval = 30
     gradient_accumulations = 2
     debug_show = False
@@ -33,7 +31,7 @@ def train(model):
 
     # Create Optimizer, Scheduler, ...
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.5)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.7)
     criterion = nn.CrossEntropyLoss()
 
     # Iterate over train dataset

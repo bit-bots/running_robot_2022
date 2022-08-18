@@ -115,7 +115,7 @@ class MLPSeq(nn.Module):
         self.cnn_feature_reduction = nn.Conv2d(512, 32, 1) # Reduces the number of feature maps of the resnet
         self.image_embedding = nn.Linear(32 * 5 * 4, token_size) # Maps resnet output to embeddings for the transformer
         self.aggregation = nn.Linear(self.token_size * max_len, self.token_size)
-        self.decoder = nn.Linear(self.token_size, 5)
+        self.decoder = nn.Linear(self.token_size, 6)
         self.activation = nn.LeakyReLU(inplace=True)
         self.embedding_cache = deque([torch.zeros((1, token_size))] * max_len, maxlen=max_len)
 
